@@ -1,0 +1,13 @@
+<resources>
+    <string name="app_name">PhotoWeather</string>
+    <!-- TODO: Remove or change this placeholder text -->
+    <string name="hello_blank_fragment">Hello blank fragment</string>
+    <string name="permission_required">Permissions Are Required to continue application running with it`s functionality</string>
+    <string name="internet_required">Internet is Required to continue application running with it`s functionality</string>
+    <string name="location_required">Please turn on location it is Required to continue application running with it`s functionality</string>
+    <string name="image_save_error">can`t save image</string>
+    <string name="image_delete_error">can`t delete image</string>
+    <string name="image_deleted">Image Deleted</string>
+    <string name="share_on">Share On</string>
+    <string name="generic_unknown_error">Unknown Error</string>
+</resources>
