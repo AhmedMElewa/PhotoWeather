@@ -32,6 +32,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.fragment.findNavController
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout.OnRefreshListener
 import androidx.window.layout.WindowInfoTracker
 import androidx.window.layout.WindowMetricsCalculator
 import com.elewa.photoweather.R
@@ -56,7 +57,6 @@ import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.FileNotFoundException
 import java.io.FileOutputStream
@@ -64,6 +64,7 @@ import java.io.IOException
 import java.util.*
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
+
 
 @AndroidEntryPoint
 class HomeFragment : BaseFragment<FragmentHomeBinding>() {
@@ -134,9 +135,29 @@ class HomeFragment : BaseFragment<FragmentHomeBinding>() {
             findNavController().navigate(action)
         }
 
+        binding.swipeToRefresh.setOnRefreshListener {
+            checkWhatIsNotAvailable()
+        }
+
         initObservers()
         initEffectObservation()
 
+    }
+
+    private fun checkWhatIsNotAvailable() {
+        binding.swipeToRefresh.isRefreshing = false
+        if (hasCamera() && hasAccessAresLocation()) {
+            if (requireContext().isLocationEnabled()) {
+                if (requireContext().isOnline()) {
+                    if (currentImage != null) {
+                        binding.txtError.toGone()
+                        getLocation()
+                        binding.swipeToRefresh.isEnabled = false
+
+                    }
+                }
+            }
+        }
     }
 
     private fun initObservers() {
@@ -219,6 +240,7 @@ class HomeFragment : BaseFragment<FragmentHomeBinding>() {
     private fun errorText(value: String) {
         binding.txtError.text = value
         binding.txtError.toVisible()
+        checkWhatIsNotAvailable()
     }
 
 

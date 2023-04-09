@@ -24,13 +24,11 @@ android {
     buildTypes {
         debug {
             buildConfigField "String", "BASE_URL", '"https://api.openweathermap.org/"'
-            buildConfigField "String", "CLIENT_ID", '""'
-
+            buildConfigField "String", "CLIENT_ID", '"5b2b39be6316be84acb1ae6f7050b7f1"'
         }
         release {
             buildConfigField "String", "BASE_URL", '"https://api.openweathermap.org/"'
-            buildConfigField "String", "CLIENT_ID", '""'
-
+            buildConfigField "String", "CLIENT_ID", '"5b2b39be6316be84acb1ae6f7050b7f1"'
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
@@ -126,6 +124,9 @@ dependencies {
     implementation "com.squareup.retrofit2:retrofit:2.9.0"
     implementation 'com.squareup.retrofit2:converter-gson:2.9.0'
     implementation "com.squareup.okhttp3:logging-interceptor:5.0.0-alpha.5"
+
+    implementation("androidx.swiperefreshlayout:swiperefreshlayout:1.2.0-alpha01")
+
 
 
     //testing

@@ -18,6 +18,9 @@ fun View.toVisible() {
 fun View.toGone() {
     this.visibility = View.GONE
 }
+fun View.toInvisible() {
+    this.visibility = View.INVISIBLE
+}
 
 fun ImageView.loadImages(url: Uri)
 {
