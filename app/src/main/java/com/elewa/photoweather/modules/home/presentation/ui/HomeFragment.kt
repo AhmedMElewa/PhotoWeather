@@ -120,7 +120,9 @@ class HomeFragment : BaseFragment<FragmentHomeBinding>() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-
+        binding.swipeToRefresh.setOnRefreshListener {
+            checkWhatIsNotAvailable()
+        }
         requestPermissions()
     }
 
@@ -135,9 +137,7 @@ class HomeFragment : BaseFragment<FragmentHomeBinding>() {
             findNavController().navigate(action)
         }
 
-        binding.swipeToRefresh.setOnRefreshListener {
-            checkWhatIsNotAvailable()
-        }
+
 
         initObservers()
         initEffectObservation()
@@ -150,13 +150,18 @@ class HomeFragment : BaseFragment<FragmentHomeBinding>() {
             if (requireContext().isLocationEnabled()) {
                 if (requireContext().isOnline()) {
                     if (currentImage != null) {
-                        binding.txtError.toGone()
                         getLocation()
-                        binding.swipeToRefresh.isEnabled = false
-
                     }
+                    binding.txtError.toGone()
+                    initView()
+                }else{
+                    errorText(getString(R.string.internet_required))
                 }
+            }else{
+                errorText(getString(R.string.location_required))
             }
+        }else{
+            errorText(getString(R.string.permission_required))
         }
     }
 
@@ -196,7 +201,8 @@ class HomeFragment : BaseFragment<FragmentHomeBinding>() {
                     }
                     is HomeSideEffect.ImageSaved -> {
                         currentImage = effect.imgState
-                        getLocation()
+                        checkWhatIsNotAvailable()
+//                        getLocation()
                     }
                     is HomeSideEffect.WeatherLoaded -> {
 
@@ -240,7 +246,6 @@ class HomeFragment : BaseFragment<FragmentHomeBinding>() {
     private fun errorText(value: String) {
         binding.txtError.text = value
         binding.txtError.toVisible()
-        checkWhatIsNotAvailable()
     }
 
 
