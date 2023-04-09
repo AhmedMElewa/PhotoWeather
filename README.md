@@ -9,7 +9,7 @@ Simple mobile application lets users take a photo, add current weather informati
 
 
 ### Installing
-You can download the final apk [here](https://drive.google.com/file/d/1rev1O-wB7lCaP1EaPUYdOyz3W50T0gTa/view?usp=drivesdk)
+You can download the final apk [here](https://drive.google.com/file/d/1wCfoaCiwvqM5WFafvgg7G4VqvFmnzvAj/view?usp=sharing)
 
 #### Project characteristics and tech-stack
 * Tech-stack
