@@ -2,7 +2,7 @@
 Simple mobile application lets users take a photo, add current weather information on it for sharing.
 ## Description
 * A “Weather” application lets users take a photo, add current weather information (e.g. place name, temperature, weather condition, …) as a banner overlay on top of the photo, and finally, share it on Facebook or Twitter 
-    * Make sure to give permissions required to app
+    * Make sure to give permissions required to the app
     * Open your GPS Location
     * Make sure that the internet connection is working
     
