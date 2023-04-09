@@ -32,7 +32,6 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.fragment.findNavController
-import androidx.swiperefreshlayout.widget.SwipeRefreshLayout.OnRefreshListener
 import androidx.window.layout.WindowInfoTracker
 import androidx.window.layout.WindowMetricsCalculator
 import com.elewa.photoweather.R
@@ -501,13 +500,26 @@ class HomeFragment : BaseFragment<FragmentHomeBinding>() {
                         val location: Location? = task.result
                         if (location != null) {
                             val geocoder = Geocoder(requireContext(), Locale.getDefault())
-                            val list: MutableList<Address>? =
-                                geocoder.getFromLocation(location.latitude, location.longitude, 1)
-                            var lat = "${list?.get(0)?.latitude}"
-                            var lon = "${list?.get(0)?.longitude}"
-                            var city = "${list?.get(0)?.countryName}"
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                                geocoder.getFromLocation(location.latitude,location.longitude,1,object : Geocoder.GeocodeListener{
+                                    override fun onGeocode(list: MutableList<Address>) {
+                                        var lat = "${list?.get(0)?.latitude}"
+                                        var lon = "${list?.get(0)?.longitude}"
+                                        var city = "${list?.get(0)?.countryName}"
 
-                            viewModel.getWeather(lat, lon, city)
+                                        viewModel.getWeather(lat, lon, city)
+                                        // code
+                                    }
+                                    override fun onError(errorMessage: String?) {
+                                        super.onError(errorMessage)
+                                        errorText(getString(R.string.location_required))
+                                    }
+
+                                })
+                            }else{
+                                var city = "Egypt"
+                                viewModel.getWeather(location.latitude.toString(),location.longitude.toString(), city)
+                            }
 
 
                         } else {
