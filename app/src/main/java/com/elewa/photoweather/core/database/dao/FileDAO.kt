@@ -14,9 +14,6 @@ interface FileDAO {
     @Query("SELECT * FROM $File_TABLE")
     fun selectAllFiles(): Flow<List<FileDTO>>
 
-//    @Query("SELECT localPath FROM $File_TABLE")
-//    fun getFilesLocalPath(): List<String>
-
     @Query("DELETE FROM $File_TABLE WHERE id=:imageId")
     fun deleteFile(imageId: Int): Int
 

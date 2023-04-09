@@ -4,26 +4,25 @@ import android.Manifest
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.graphics.Bitmap
-import android.graphics.Canvas
-import android.graphics.Color
-import android.graphics.Paint
-import android.graphics.drawable.BitmapDrawable
+import android.graphics.*
 import android.hardware.display.DisplayManager
-import android.location.*
+import android.location.Address
+import android.location.Geocoder
+import android.location.Location
 import android.media.MediaScannerConnection
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.provider.MediaStore
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.webkit.MimeTypeMap
 import android.widget.Toast
-import androidx.activity.addCallback
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.camera.core.*
+import androidx.camera.core.Camera
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
@@ -54,8 +53,10 @@ import com.elewa.photoweather.modules.home.util.Constants.Companion.getOutputDir
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.FileNotFoundException
 import java.io.FileOutputStream
@@ -84,10 +85,11 @@ class HomeFragment : BaseFragment<FragmentHomeBinding>() {
                 errorText(getString(R.string.permission_required))
             }
         }
+
+    //camerax
     private val displayManager by lazy {
         requireContext().getSystemService(Context.DISPLAY_SERVICE) as DisplayManager
     }
-
     private var camera: Camera? = null
     private var cameraProvider: ProcessCameraProvider? = null
     private lateinit var cameraExecutor: ExecutorService
@@ -96,10 +98,11 @@ class HomeFragment : BaseFragment<FragmentHomeBinding>() {
     private var imageAnalyzer: ImageAnalysis? = null
     private lateinit var windowManager: WindowInfoTracker
     private lateinit var outputDirectory: File
-    private var imgUrl: Uri? = null;
     private var preview: Preview? = null
     private lateinit var photoFile: File
     private var lensFacing: Int = CameraSelector.LENS_FACING_BACK
+
+    private var space = 0
 
     private val displayListener = object : DisplayManager.DisplayListener {
         override fun onDisplayAdded(displayId: Int) = Unit
@@ -118,48 +121,11 @@ class HomeFragment : BaseFragment<FragmentHomeBinding>() {
         super.onViewCreated(view, savedInstanceState)
 
         requestPermissions()
-
-
     }
 
     private fun initView() {
-//        if (requireContext().isOnline()){
         initCamera()
         mFusedLocationClient = LocationServices.getFusedLocationProviderClient(requireActivity())
-        requireActivity().onBackPressedDispatcher.addCallback(viewLifecycleOwner) {
-            if (currentImage != null) {
-                binding.imgCaptured.toGone()
-                binding.imgDelete.toGone()
-                binding.imgShare.toGone()
-                binding.viewFinder.toVisible()
-                binding.imgTakePhoto.toVisible()
-                currentImage = null
-            } else {
-                requireActivity().finish()
-            }
-
-        }
-
-        binding.imgDelete.setOnClickListener {
-            val castedImage = imgUrl?.path?.let { it1 -> File(it1) }
-            if (castedImage != null && castedImage.exists()) {
-                deleteImage()
-                binding.imgCaptured.toGone()
-                binding.imgDelete.toGone()
-                binding.imgShare.toGone()
-                binding.viewFinder.toVisible()
-                binding.imgTakePhoto.toVisible()
-            }
-        }
-
-        binding.imgShare.setOnClickListener {
-            val castedImage = imgUrl?.path?.let { it1 -> File(it1) }
-            castedImage?.share(requireContext(), getString(R.string.share_on))
-        }
-//        }
-//    else{
-//            errorText(getString(R.string.internet_required))
-//        }
 
         binding.imgHistory.setOnClickListener {
             currentImage = null
@@ -173,38 +139,22 @@ class HomeFragment : BaseFragment<FragmentHomeBinding>() {
 
     }
 
-    override fun onResume() {
-        super.onResume()
-    }
-
     private fun initObservers() {
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
                 viewModel.uiState.collect { state ->
                     when (state) {
                         is HomeUiState.Empty -> {
-                            binding.progressBlue.visibility = View.GONE
+                            binding.progressBlue.toGone()
                             currentImage = null
                         }
                         is HomeUiState.Loading -> {
                             if (state.loading) {
-                                binding.progressBlue.visibility = View.VISIBLE
+                                binding.progressBlue.toVisible()
                             } else {
-                                binding.progressBlue.visibility = View.GONE
+                                binding.progressBlue.toGone()
                             }
                         }
-                        is HomeUiState.Loaded -> {
-                            binding.progressBlue.visibility = View.GONE
-                            currentImage = state.imgState
-                            getLocation()
-                        }
-                        is HomeUiState.WeatherLoaded -> {
-                            binding.progressBlue.visibility = View.GONE
-                            val imageBitmap =
-                                (binding.imgCaptured.drawable as BitmapDrawable).bitmap
-                            drawWeatherData(imageBitmap,state.weatherState)
-                        }
-                        else -> {}
                     }
                 }
             }
@@ -212,7 +162,7 @@ class HomeFragment : BaseFragment<FragmentHomeBinding>() {
     }
 
     private fun initEffectObservation() {
-        lifecycleScope.launchWhenStarted {
+        viewLifecycleOwner.lifecycleScope.launchWhenStarted {
             viewModel.uiEffects.collectLatest { effect ->
                 when (effect) {
                     is HomeSideEffect.Error -> {
@@ -223,16 +173,43 @@ class HomeFragment : BaseFragment<FragmentHomeBinding>() {
                             Toast.LENGTH_SHORT
                         ).show()
                     }
-                    is HomeSideEffect.DeleteImage -> {
-                        binding.progressBlue.toGone()
-                        currentImage = null
-                        Toast.makeText(
-                            requireContext(),
-                            getString(effect.message),
-                            Toast.LENGTH_SHORT
-                        ).show()
+                    is HomeSideEffect.ImageSaved -> {
+                        currentImage = effect.imgState
+                        getLocation()
                     }
-                    else -> {}
+                    is HomeSideEffect.WeatherLoaded -> {
+
+                        try {
+                            val file: File = File(currentImage?.imgPath)
+                            var uri: Uri = Uri.fromFile(file)
+                            val bitmap = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                                ImageDecoder.decodeBitmap(
+                                    ImageDecoder.createSource(
+                                        requireContext().contentResolver,
+                                        uri
+                                    )
+                                )
+                            } else {
+                                MediaStore.Images.Media.getBitmap(
+                                    requireContext().contentResolver,
+                                    uri
+                                )
+                            }
+                            binding.progressBlue.toVisible()
+                            viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
+                                drawWeatherData(bitmap, effect.weatherState)
+                            }
+
+                        } catch (e: java.lang.Exception) {
+                            Toast.makeText(
+                                requireContext(),
+                                getString(R.string.generic_unknown_error),
+                                Toast.LENGTH_SHORT
+                            ).show()
+                            binding.progressBlue.toGone()
+                        }
+
+                    }
                 }
             }
         }
@@ -244,14 +221,6 @@ class HomeFragment : BaseFragment<FragmentHomeBinding>() {
         binding.txtError.toVisible()
     }
 
-    private fun deleteImage() {
-        val castedImage = imgUrl?.path?.let { it1 -> File(it1) }
-        if (castedImage != null && castedImage.exists()) {
-            castedImage.delete()
-            currentImage?.imgId?.toInt()?.let { viewModel.deleteImage(it) }
-
-        }
-    }
 
     private fun hasCamera() =
         ActivityCompat.checkSelfPermission(
@@ -402,22 +371,7 @@ class HomeFragment : BaseFragment<FragmentHomeBinding>() {
 
     private fun updateView(url: Uri) {
         if (url != null) {
-
-            binding.imgCaptured.let { img ->
-                img.post {
-                    img.loadImages(url)
-                    viewModel.saveImage(url.path.toString())
-                    imgUrl = url
-                    binding.apply {
-                        imgCaptured.toVisible()
-                        imgDelete.toVisible()
-                        imgShare.toVisible()
-                        viewFinder.toInvisible()
-                        imgTakePhoto.toInvisible()
-                    }
-
-                }
-            }
+            viewModel.saveImage(url.path.toString())
         }
     }
 
@@ -513,21 +467,27 @@ class HomeFragment : BaseFragment<FragmentHomeBinding>() {
         ) {
             requestPermissions()
         } else {
-            if (isLocationEnabled()) {
-                mFusedLocationClient.lastLocation.addOnCompleteListener(requireActivity()) { task ->
-                    val location: Location? = task.result
-                    if (location != null) {
-                        val geocoder = Geocoder(requireContext(), Locale.getDefault())
-                        val list: MutableList<Address>? =
-                            geocoder.getFromLocation(location.latitude, location.longitude, 1)
-                        var lat = "${list?.get(0)?.latitude}"
-                        var lon = "${list?.get(0)?.longitude}"
-                        var city = "${list?.get(0)?.countryName}"
+            if (requireContext().isLocationEnabled()) {
+                if (requireContext().isOnline()) {
+                    mFusedLocationClient.lastLocation.addOnCompleteListener(requireActivity()) { task ->
+                        val location: Location? = task.result
+                        if (location != null) {
+                            val geocoder = Geocoder(requireContext(), Locale.getDefault())
+                            val list: MutableList<Address>? =
+                                geocoder.getFromLocation(location.latitude, location.longitude, 1)
+                            var lat = "${list?.get(0)?.latitude}"
+                            var lon = "${list?.get(0)?.longitude}"
+                            var city = "${list?.get(0)?.countryName}"
 
-                        viewModel.getWeather(lat,lon,city)
+                            viewModel.getWeather(lat, lon, city)
 
 
+                        } else {
+                            errorText(getString(R.string.internet_required))
+                        }
                     }
+                } else {
+                    errorText(getString(R.string.internet_required))
                 }
             } else {
                 errorText(getString(R.string.location_required))
@@ -535,32 +495,24 @@ class HomeFragment : BaseFragment<FragmentHomeBinding>() {
         }
     }
 
-    private fun isLocationEnabled(): Boolean {
-        val locationManager: LocationManager =
-            requireActivity().getSystemService(Context.LOCATION_SERVICE) as LocationManager
-        return locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER) || locationManager.isProviderEnabled(
-            LocationManager.NETWORK_PROVIDER
-        )
-    }
 
-
-
-    private var space = 0
-    private fun drawWeatherData(capturedImageBitmap: Bitmap,weatherData: WeatherUiModel) {
+    private fun drawWeatherData(capturedImageBitmap: Bitmap, weatherData: WeatherUiModel) {
+        space = 0
         val newBitmap = capturedImageBitmap.copy(Bitmap.Config.ARGB_8888, true)
         var outputStream: FileOutputStream? = null
         val canvas = Canvas(newBitmap)
         val paint = Paint(Paint.ANTI_ALIAS_FLAG)
-        paint.color = Color.BLACK
-        paint.textSize = 50f
+        paint.color = Color.BLUE
+        paint.textSize = 120f
         var dataList = ArrayList<String>()
-        dataList.add(weatherData.place)
-        dataList.add(weatherData.temp)
-        dataList.add(weatherData.description)
-        for (text in dataList) canvas.drawText(text,
-            (newBitmap.width / 2 - 100
+        dataList.add(weatherData.place.uppercase(Locale.ROOT))
+        dataList.add(weatherData.temp.uppercase(Locale.ROOT))
+        dataList.add(weatherData.description.uppercase(Locale.ROOT))
+        for (text in dataList) canvas.drawText(
+            text,
+            (newBitmap.width / 8 - 100
                     ).toFloat(),
-            (newBitmap.height / 2 + 50.let { space += it; space }).toFloat(),
+            (newBitmap.height / 8 + 130.let { space += it; space }).toFloat(),
             paint
         )
         val newModifiedCapturedImage: File = File(currentImage?.imgPath)
@@ -576,10 +528,6 @@ class HomeFragment : BaseFragment<FragmentHomeBinding>() {
             newBitmap.compress(Bitmap.CompressFormat.PNG, 100, outputStream)
         } catch (e: FileNotFoundException) {
             e.printStackTrace()
-            Log.i(
-                "Elewa",
-                "drawWeatherData: " + e.localizedMessage
-            )
         } finally {
             if (outputStream != null) {
                 try {
@@ -590,7 +538,18 @@ class HomeFragment : BaseFragment<FragmentHomeBinding>() {
                 }
                 var file = File(currentImage?.imgPath)
                 var uri = Uri.fromFile(file)
-                binding.imgCaptured.loadImages(uri)
+                if (currentImage != null) {
+                    val action =
+                        HomeFragmentDirections.actionHomeFragmentToImageViewFragment(
+                            currentImage?.imgPath!!,
+                            currentImage?.imgId!!
+                        )
+                    viewLifecycleOwner.lifecycleScope.launch(Dispatchers.Main) {
+                        binding.progressBlue.toGone()
+                        findNavController().navigate(action)
+                    }
+
+                }
             }
         }
     }

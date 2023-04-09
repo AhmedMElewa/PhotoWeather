@@ -1,9 +1,9 @@
 package com.elewa.photoweather.modules.history.domain.interceptor
 
 import com.elewa.photoweather.base.BaseUseCase
-import com.elewa.photoweather.core.mapper.toImageEntity
 import com.elewa.photoweather.modules.history.domain.repository.HistoryRepository
-import com.elewa.photoweather.core.domain.entity.ImageEntity
+import com.elewa.photoweather.modules.history.domain.entity.ImageEntity
+import com.elewa.photoweather.modules.history.data.mapper.toImageEntity
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 

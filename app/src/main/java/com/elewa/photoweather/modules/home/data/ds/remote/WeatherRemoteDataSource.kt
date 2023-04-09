@@ -1,4 +1,4 @@
-package com.elewa.photoweather.modules.home.data.ds
+package com.elewa.photoweather.modules.home.data.ds.remote
 
 
 import com.elewa.photoweather.BuildConfig
@@ -17,7 +17,9 @@ interface WeatherRemoteDataSource {
         @Query("lon")
         longitude: String,
         @Query("appid")
-        clientID: String = BuildConfig.CLIENT_ID
+        clientID: String = BuildConfig.CLIENT_ID,
+        @Query("units")
+        units: String = "imperial"
     ): Response<ResponseWeatherModel>
 
 }

@@ -6,5 +6,3 @@ data class WeatherEntity(
     val place: String,
 ) {
 }
-
-fun Double.toCelsius() = String.format("%.2f", (this-272.15)).toDouble()

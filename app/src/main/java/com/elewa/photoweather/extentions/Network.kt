@@ -11,16 +11,6 @@ import android.provider.Settings
 import android.util.Log
 
 
-fun Context.isOnMobileData(): Boolean {
-    val connectivityManager =
-        this.getSystemService(CONNECTIVITY_SERVICE) as ConnectivityManager
-    val all = connectivityManager.allNetworks
-    return all.any {
-        val capabilities = connectivityManager.getNetworkCapabilities(it)
-        capabilities?.hasTransport(TRANSPORT_CELLULAR) == true
-    }
-}
-
 fun Context.isOnline(): Boolean {
     val connectivityManager =
         getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
@@ -43,17 +33,11 @@ fun Context.isOnline(): Boolean {
     return false
 }
 
+
 fun Context.isLocationEnabled(): Boolean {
-    return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-        // This is a new method provided in API 28
-        val lm = this.getSystemService(Context.LOCATION_SERVICE) as LocationManager
-        lm.isLocationEnabled
-    } else {
-        // This was deprecated in API 28
-        val mode: Int = Settings.Secure.getInt(
-            this.contentResolver, Settings.Secure.LOCATION_MODE,
-            Settings.Secure.LOCATION_MODE_OFF
-        )
-        mode != Settings.Secure.LOCATION_MODE_OFF
-    }
+    val locationManager: LocationManager =
+        this.getSystemService(Context.LOCATION_SERVICE) as LocationManager
+    return locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER) || locationManager.isProviderEnabled(
+        LocationManager.NETWORK_PROVIDER
+    )
 }

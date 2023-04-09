@@ -5,5 +5,7 @@ import androidx.annotation.StringRes
 sealed class HomeSideEffect {
 
     data class Error(@StringRes val message: Int) : HomeSideEffect()
-    data class DeleteImage(@StringRes val message: Int) : HomeSideEffect()
+
+    data class ImageSaved(val imgState: ImageUiModel) : HomeSideEffect()
+    data class WeatherLoaded(val weatherState: WeatherUiModel) : HomeSideEffect()
 }

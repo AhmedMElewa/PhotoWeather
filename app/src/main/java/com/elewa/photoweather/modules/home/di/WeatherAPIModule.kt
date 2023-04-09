@@ -1,6 +1,6 @@
 package com.elewa.photoweather.modules.home.di
 
-import com.elewa.photoweather.modules.home.data.ds.WeatherRemoteDataSource
+import com.elewa.photoweather.modules.home.data.ds.remote.WeatherRemoteDataSource
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn

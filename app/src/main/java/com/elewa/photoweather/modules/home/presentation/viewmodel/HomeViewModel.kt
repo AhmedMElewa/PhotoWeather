@@ -4,7 +4,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.elewa.photoweather.R
 import com.elewa.photoweather.core.exceptions.APIException
-import com.elewa.photoweather.modules.home.domain.interceptor.DeleteImageUseCase
 import com.elewa.photoweather.modules.home.domain.entity.WeatherParams
 import com.elewa.photoweather.modules.home.domain.interceptor.GetWeatherUseCase
 import com.elewa.photoweather.modules.home.domain.interceptor.SaveImageUseCase
@@ -21,7 +20,6 @@ import javax.inject.Inject
 @HiltViewModel
 class HomeViewModel @Inject constructor(
     private val saveImageUseCase: SaveImageUseCase,
-    private val deleteImageUseCase: DeleteImageUseCase,
     private val getWeatherUseCase: GetWeatherUseCase,
 ) : ViewModel() {
 
@@ -36,7 +34,7 @@ class HomeViewModel @Inject constructor(
             saveImageUseCase.execute(imgPath).fold(
                 {
                     if (it > 0) {
-                        _uiState.value = HomeUiState.Loaded(ImageUiModel(it, imgPath))
+                        updateEffect(HomeSideEffect.ImageSaved(ImageUiModel(it, imgPath)))
                     } else {
                         updateEffect(HomeSideEffect.Error(R.string.image_save_error))
                         _uiState.value = HomeUiState.Loading(false)
@@ -47,20 +45,6 @@ class HomeViewModel @Inject constructor(
                     _uiState.value = HomeUiState.Loading(false)
                     updateEffect(HomeSideEffect.Error(R.string.image_save_error))
                 }
-            )
-        }
-    }
-
-    fun deleteImage(imgId: Int) {
-        viewModelScope.launch(Dispatchers.IO) {
-            _uiState.value = HomeUiState.Loading(true)
-            deleteImageUseCase.execute(imgId).fold(
-                {
-                    updateEffect(HomeSideEffect.DeleteImage(R.string.image_deleted))
-                }, {
-                    updateEffect(HomeSideEffect.Error(R.string.image_save_error))
-                }
-
             )
         }
     }
@@ -76,10 +60,9 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch(Dispatchers.IO) {
             getWeatherUseCase.execute(WeatherParams(lat, lon,city)).fold({
                 _uiState.value = HomeUiState.Loading(false)
-                _uiState.value = HomeUiState.WeatherLoaded(it.toWeatherUiModel())
-
+                updateEffect(HomeSideEffect.WeatherLoaded(it.toWeatherUiModel()))
             }, {
-                _uiState.value = HomeUiState.Loading(true)
+                _uiState.value = HomeUiState.Loading(false)
                 it.handleError()
             })
         }

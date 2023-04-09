@@ -9,7 +9,7 @@ import dagger.hilt.android.components.ViewModelComponent
 
 @Module
 @InstallIn(ViewModelComponent::class)
-abstract class ImageCashModule {
+abstract class HomeRepositoryModule {
     @Binds
     abstract fun bindImageCashRepository(repository: HomeRepositoryImpl): HomeRepository
 }

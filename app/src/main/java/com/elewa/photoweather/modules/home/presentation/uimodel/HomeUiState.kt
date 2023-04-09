@@ -8,7 +8,4 @@ package com.elewa.photoweather.modules.home.presentation.uimodel
 sealed class HomeUiState {
     object Empty : HomeUiState()
     data class Loading(val loading: Boolean) : HomeUiState()
-    data class Loaded(val imgState: ImageUiModel) : HomeUiState()
-    data class WeatherLoaded(val weatherState: WeatherUiModel) : HomeUiState()
-
 }

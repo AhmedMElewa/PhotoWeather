@@ -15,6 +15,8 @@ import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.elewa.photoweather.base.BaseFragment
 import com.elewa.photoweather.databinding.FragmentHistoryBinding
+import com.elewa.photoweather.extentions.toGone
+import com.elewa.photoweather.extentions.toVisible
 import com.elewa.photoweather.modules.history.presentation.adapter.HistoryAdapter
 import com.elewa.photoweather.modules.history.presentation.uimodel.HistoryUiState
 import com.elewa.photoweather.modules.history.presentation.viewmodel.HistoryViewModel
@@ -50,7 +52,6 @@ class HistoryFragment : BaseFragment<FragmentHistoryBinding>() {
 
 
         adapter = HistoryAdapter(HistoryAdapter.OnClickListener { item ->
-            Toast.makeText(requireContext(), item.imgPath, Toast.LENGTH_SHORT).show()
             val action =
                 HistoryFragmentDirections.actionHistoryFragmentToImageViewFragment(
                     item.imgPath,
@@ -69,17 +70,17 @@ class HistoryFragment : BaseFragment<FragmentHistoryBinding>() {
                 viewModel.uiState.collect { state ->
                     when (state) {
                         is HistoryUiState.Empty -> {
-                            binding.progressBlue.visibility = View.GONE
+                            binding.progressBlue.toGone()
                         }
                         is HistoryUiState.Loading -> {
                             if (state.loading) {
-                                binding.progressBlue.visibility = View.VISIBLE
+                                binding.progressBlue.toVisible()
                             } else {
-                                binding.progressBlue.visibility = View.GONE
+                                binding.progressBlue.toGone()
                             }
                         }
                         is HistoryUiState.Loaded -> {
-                            binding.progressBlue.visibility = View.GONE
+                            binding.progressBlue.toGone()
                             adapter.submitList(state.imgList)
                             binding.recyclerImages.adapter = adapter
                         }
