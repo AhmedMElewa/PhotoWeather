@@ -25,10 +25,12 @@ android {
         debug {
             buildConfigField "String", "BASE_URL", '"https://api.openweathermap.org/"'
             buildConfigField "String", "CLIENT_ID", '""'
+
         }
         release {
             buildConfigField "String", "BASE_URL", '"https://api.openweathermap.org/"'
             buildConfigField "String", "CLIENT_ID", '""'
+
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
