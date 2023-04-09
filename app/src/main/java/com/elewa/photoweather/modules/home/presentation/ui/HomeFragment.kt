@@ -153,6 +153,7 @@ class HomeFragment : BaseFragment<FragmentHomeBinding>() {
                         getLocation()
                     }
                     binding.txtError.toGone()
+                    binding.swipeToRefresh.isEnabled = false
                     initView()
                 }else{
                     errorText(getString(R.string.internet_required))
@@ -163,6 +164,11 @@ class HomeFragment : BaseFragment<FragmentHomeBinding>() {
         }else{
             errorText(getString(R.string.permission_required))
         }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        currentImage = null
     }
 
     private fun initObservers() {
@@ -228,12 +234,7 @@ class HomeFragment : BaseFragment<FragmentHomeBinding>() {
                             }
 
                         } catch (e: java.lang.Exception) {
-                            Toast.makeText(
-                                requireContext(),
-                                getString(R.string.generic_unknown_error),
-                                Toast.LENGTH_SHORT
-                            ).show()
-                            binding.progressBlue.toGone()
+                            Log.e("Elewa Error", e.message.toString())
                         }
 
                     }
@@ -563,8 +564,6 @@ class HomeFragment : BaseFragment<FragmentHomeBinding>() {
                 } catch (e: IOException) {
                     e.printStackTrace()
                 }
-                var file = File(currentImage?.imgPath)
-                var uri = Uri.fromFile(file)
                 if (currentImage != null) {
                     val action =
                         HomeFragmentDirections.actionHomeFragmentToImageViewFragment(
